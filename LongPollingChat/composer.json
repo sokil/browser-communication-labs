@@ -1,0 +1,15 @@
+{
+    "name": "sokil/longpolling",
+    "authors": [
+        {
+            "name": "Dmytro Sokil",
+            "email": "dmytro.sokil@gmail.com"
+        }
+    ],
+    "require": {
+        "slim/slim": "2.*"
+    },
+    "autoload": {
+        "psr-0": {"Sokil": "library/"}
+    }
+}

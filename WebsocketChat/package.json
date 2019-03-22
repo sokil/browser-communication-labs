@@ -1,0 +1,9 @@
+{
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sokil/WebsocketChat"
+    },
+    "dependencies": {
+        "socket.io": "1.2.0"
+    }
+}

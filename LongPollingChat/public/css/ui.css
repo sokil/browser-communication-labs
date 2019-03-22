@@ -1,0 +1,54 @@
+html, body
+{
+    height: 100%;
+    width: 100%;
+    padding: 10px;
+    margin: 0;
+}
+
+.container
+{
+    height: 100%;
+    position: relative;
+}
+
+#frmLogin
+{
+    margin: 300px auto; 
+    width: 300px;
+    padding: 20px;
+    background: #eeeeee;
+    
+    border-radius: 8px;
+    -moz-border-radius: 8px;
+    -webkit-border-radius: 8px;
+}
+
+#messages-container
+{
+    height: 100%;
+    width: 100%;
+    padding-bottom: 60px;
+    margin: 0px 0 -50px 0;
+}
+
+#messages
+{
+    height: 100%;
+    width: 100%;
+    overflow: auto;
+    
+    border-bottom: 1px dotted #cdcdcd;
+}
+
+#frmSend
+{
+    height: 50px;
+}
+
+#btnLogout
+{
+    position: absolute;
+    right: 10px;
+    top: 10px;
+}

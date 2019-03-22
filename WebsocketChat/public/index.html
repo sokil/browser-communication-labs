@@ -1,0 +1,199 @@
+<html>
+    <head>
+        <title>Socket.io chat</title>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+        <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
+        <style type="text/css">
+            html, body
+            {
+                height: 100%;
+                width: 100%;
+                padding: 10px;
+                margin: 0;
+            }
+
+            #chat-room-tabs {
+                margin: 60px 0 10px 0;
+            }
+            
+            #chat-room-tabs li .close {
+                position: absolute;
+                right: 10px;
+                top: 10px;
+            }
+            
+            #chat-room-tabs li.canLeave a {
+                padding-right: 35px;
+            }
+            
+            #chat-container {
+                width: 100%;
+                height: 60%;
+            }
+            
+            #chat-message-container {
+                height: 100%;
+                width: 100%;
+                margin-bottom: -40px;
+                padding: 0 0 50px 0;
+            }
+            
+            #chat-messages {
+                overflow: auto;
+                height: 100%;
+                width: 100%;
+            }
+            
+            #chat-input-line {
+                height: 40px;
+            }
+            
+            #chat-users
+            {
+                border-left: 1px dotted #efefef;
+                height: 100%;
+                padding-left: 30px;
+            }
+            
+            .system-message {
+                color: #777;
+                font-style: italic;
+                font-size: 0.9em;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <ul class="nav nav-tabs" id="chat-room-tabs"></ul>
+            <div id="chat-container" class="row">
+                <div class="col-md-9">
+                    <div id="chat-message-container">
+                        <div id="chat-messages"></div>
+                    </div>
+                    <form id="chat-input-line">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="message" autocomplete="off">
+                            <span class="input-group-btn">
+                                <input type="submit" class="btn btn-default" value="Send">
+                            </span>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-3">
+                    <ul id="chat-users"></ul>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            var socket = io(),
+                currentRoomId = null;
+            
+            function loadRoomTabs(roomList) {
+                var $chatRoomTabs = $('#chat-room-tabs').empty();
+                
+                // add rooms
+                for(var roomId in roomList) {
+                    var $li = $('<li data-room-id="' + roomId + '"></li>');
+                    $chatRoomTabs.append($li);
+                    $('<a href="#' + roomId + '">' + roomList[roomId].title + '</a>').appendTo($li);
+                    
+                    if(roomList[roomId].canLeave) {
+                        $li.addClass('canLeave');
+                        $('<button type="button" class="close"><span>×</span></button>').appendTo($li); 
+                    }
+                }
+                
+                if(!currentRoomId || !roomList[currentRoomId]) {
+                    $currentRoomTab = $chatRoomTabs.find('li:first-child');
+                } else {
+                    $currentRoomTab = $chatRoomTabs.find('li[data-room-id="' + currentRoomId + '"]');
+                } 
+                
+                // select current tab
+                selectRoomTab($currentRoomTab);
+                
+                // tab click handler
+                $('#chat-room-tabs A').click(function() {
+                    selectRoomTab($(this).closest('LI'));
+                });
+                
+                // handle closing tabs
+                $('#chat-room-tabs .close').click(function() {
+                    var $tab = $(this).closest('LI');
+                    // check if deleted tab active
+                    if($tab.hasClass('active')) {
+                        // join to first room
+                        var $firstTab = $chatRoomTabs.find('LI:first-child');
+                        selectRoomTab($firstTab);
+                    }
+                    
+                    // hide tab
+                    $tab.remove();
+                });
+            }
+            
+            // select current tab
+            function selectRoomTab($currentRoomTab) {
+                // set tab actibe
+                $('#chat-room-tabs LI.active').removeClass('active');
+                $currentRoomTab.addClass('active');
+                // clear message block
+                $('#chat-messages').empty();
+                // clear user list
+                $('#chat-users').empty();
+                // define current tab id
+                currentRoomId = $currentRoomTab.data('room-id');
+                // join room
+                socket.emit('room-join', currentRoomId);
+            }
+            
+            // create text block in chat window
+            function addChatMessage(message, className) {
+                var $chatMessages = $('#chat-messages');
+                // add new message to list
+                var $message = $('<div>' + message + '</div>');
+                if(className) {
+                    $message.addClass(className);
+                }
+                $message.appendTo($chatMessages);
+                // scroll
+                $chatMessages[0].scrollTop = $chatMessages[0].scrollHeight;
+            }
+            
+            // create system text block in chat window
+            function addChatSystemMessage(message) {
+                return addChatMessage(message, 'system-message');
+            }
+            
+            // configure rooms
+            socket.on('room-list', function(roomList) {
+                loadRoomTabs(roomList);
+            });
+            
+            socket.on('room-joined', function(data) {
+                // add message that user joind to room
+                addChatSystemMessage(data.login + ' has joined chat');
+                // add user to list of users
+                $('#chat-users').append('<li><a href="#' + data.login + '">' + data.login + '</a></li>');
+            });
+            
+            // listen server
+            socket.on('receive-message', function(message) {
+                addChatMessage(message);
+                // clear input
+                $('#chat-input-line input[name=message]').val('').focus();
+            });
+            
+            // send message from client
+            $('#chat-input-line').submit(function(e) {
+                e.preventDefault();
+                var $frm = $(this),
+                    message = $frm.find('input[name=message]').val();
+                    
+                socket.emit('send-message', message);
+            });
+        </script>
+    </body>
+</html>
