@@ -1,6 +1,6 @@
 <?php
 
-define('APPLICATION_PATH', dirname(__FILE__) . '/..');
+define('APPLICATION_PATH', __DIR__ . '/..');
 
 // configure include path
 set_include_path(implode(PATH_SEPARATOR, array(
@@ -9,13 +9,13 @@ set_include_path(implode(PATH_SEPARATOR, array(
 )));
 
 // configure autoloader
-require 'vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 // init app
 $app = new \Slim\Slim(array(
-    'debug'             => true,
-    'view'  => new Sokil\Slim\View,
-    'templates.path'    => APPLICATION_PATH . '/views',
+    'debug' => true,
+    'view' => new Sokil\Slim\View,
+    'templates.path' => APPLICATION_PATH . '/views',
 ));
 
 // middlewares
