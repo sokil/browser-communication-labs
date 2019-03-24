@@ -1,0 +1,94 @@
+{% extends "layout.html.twig" %}
+
+{% block body %}
+    <div class="row">
+        <div class="col-8 col-md-8">
+            <ul class="nav nav-pills" id="channels">
+                <li data-channel="general"  class="nav-item"><a class="nav-link active" href="javascript:void(0)">General</a></li>
+                <li data-channel="support" class="nav-item"><a class="nav-link" href="javascript:void(0)">Support</a></li>
+                <li data-channel="info" class="nav-item"><a class="nav-link" href="javascript:void(0)">Info</a></li>
+            </ul>
+        </div>
+        <div class="col-4 col-md-4 text-right">
+            <a href="/logout" class="btn btn-danger" id="btnLogout">Log out</a>
+        </div>
+    </div>
+
+    <div id="messages-container">
+        <div id="messages"></div>
+    </div>
+
+    <form id="frmSend">
+        <div class="input-group">
+            <input type="text" name="message" class="form-control">
+            <div class="input-group-append">
+                <button type="submit" class="btn btn-primary">Send</button>
+            </div>
+        </div>
+    </form>
+
+    <script type="text/javascript">
+        const $message = $('#frmSend input[name="message"]');
+        const $messageList = $('#messages');
+        const $channels = $('#channels');
+
+        // channel name to interact
+        let channel = 'general';
+
+        $channels.on('click', 'li', function(e) {
+            $channels.find('a.nav-link').removeClass('active');
+            const $li = $(this);
+            $li.find('a.nav-link').addClass('active');
+
+            channel = $li.data('channel');
+
+            console.log('Selected channel: ' + channel);
+        });
+
+        // send message
+        $('#frmSend').submit(function(e) {
+            e.preventDefault();
+            $.post(
+                '/send',
+                {
+                    channel,
+                    message: $message.val()
+                },
+                function(response) {
+                    $message.val('');
+                },
+                'json'
+            );
+        });
+
+        // get messages from queue
+        let ETag = null;
+        let time = null;
+
+        const startPoll = function() {
+            $.ajax({
+                method: 'GET',
+                data: {channel},
+                url: '/subscribe',
+                success: function(response, textStatus, xhr) {
+                    ETag = xhr.getResponseHeader('Etag');
+                    time = xhr.getResponseHeader('Last-Modified');
+
+                    if (response) {
+                        let message = '<b>' + response.nick + ' [' + response.time + ']</b> ' + response.text;
+                        $messageList.prepend($('<div/>').html(message));
+                    }
+
+                    startPoll();
+                },
+                dataType: 'json',
+                headers: {
+                    'If-None-Match': ETag,
+                    'If-Modified-Since': time
+                }
+            });
+        };
+
+        startPoll();
+    </script>
+{% endblock %}

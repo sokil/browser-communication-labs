@@ -10,7 +10,7 @@ services:
   nginx:
     container_name: "longpoll_chat_nginx"
     build:
-      context: ./Nginx
+      context: ./nginx
     ports:
       - "80:80"
     links:

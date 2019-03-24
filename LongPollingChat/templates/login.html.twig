@@ -1,0 +1,11 @@
+{% extends "layout.html.twig" %}
+
+{% block body %}
+    <form method="post" action="/login" role="form" class="form-inline" id="frmLogin">
+        <div class="form-group mr-2">
+            <label for="nick" class="sr-only">Your name</label>
+            <input type="text" name="nick" class="form-control" id="nick" placeholder="Name">
+        </div>
+        <input type="submit" value="Go" class="btn btn-primary" >
+    </form>
+{% endblock %}

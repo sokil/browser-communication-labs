@@ -15,7 +15,7 @@ html, body
 #frmLogin
 {
     margin: 300px auto; 
-    width: 300px;
+    width: 315px;
     padding: 20px;
     background: #eeeeee;
     
@@ -28,8 +28,8 @@ html, body
 {
     height: 100%;
     width: 100%;
-    padding-bottom: 60px;
-    margin: 0px 0 -50px 0;
+    padding-bottom: 100px;
+    margin: 0px 0 -90px 0;
 }
 
 #messages
@@ -44,11 +44,4 @@ html, body
 #frmSend
 {
     height: 50px;
-}
-
-#btnLogout
-{
-    position: absolute;
-    right: 10px;
-    top: 10px;
 }

@@ -7,9 +7,9 @@
         }
     ],
     "require": {
-        "slim/slim": "2.*"
-    },
-    "autoload": {
-        "psr-0": {"Sokil": "library/"}
+        "slim/slim": "3.*",
+        "slim/twig-view": "^2.4",
+        "ext-curl": "*",
+        "ext-json": "*"
     }
 }

@@ -11,69 +11,115 @@ set_include_path(implode(PATH_SEPARATOR, array(
 // configure autoloader
 require __DIR__ . '/../vendor/autoload.php';
 
+// session
+session_start();
+
 // init app
-$app = new \Slim\Slim(array(
-    'debug' => true,
-    'view' => new Sokil\Slim\View,
-    'templates.path' => APPLICATION_PATH . '/views',
-));
+$app = new \Slim\App([
+    'settings' => [
+        'displayErrorDetails' => true,
+    ],
+]);
 
-// middlewares
-$app->add(new \Slim\Middleware\SessionCookie(array(
-    'secret'    => 'gendolynojujshlasteginojy'
-)));
+// Get container
+$container = $app->getContainer();
 
-// identifying
-$app->map('/', function() use($app)
-{
-    // already idintified
-    if(!empty($_SESSION['nick']))
-        $app->redirect ('/chat');
-    
-    // identity specified
-    $nick = $app->request()->post('nick');
-    if($nick)
-    {
-        $_SESSION['nick'] = $nick;
-        $app->redirect('/chat');
+// Register view component on container
+$container['view'] = function () {
+    $view = new \Slim\Views\Twig(APPLICATION_PATH . '/templates');
+    return $view;
+};
+
+// entry point
+$app->get(
+    '/',
+    function(\Slim\Http\Request $request, \Slim\Http\Response $response, array $args) {
+        // already identified
+        if(!empty($_SESSION['nick'])) {
+            return $response->withRedirect('/chat');
+        } else {
+            return $response->withRedirect('/login');
+        }
     }
-    
-    $app->render('index.php');
-})->via(\Slim\Http\Request::METHOD_GET, \Slim\Http\Request::METHOD_POST);
+);
 
-// chat window
-$app->get('/chat', function() use($app)
-{
-    if(empty($_SESSION['nick']))
-        $app->redirect('/');
-    
-    $app->render('chat.php');
-});
+// show login form
+$app->get(
+    '/login',
+    function(\Slim\Http\Request $request, \Slim\Http\Response $response, array $args) {
+        return $this->view->render($response, 'login.html.twig');
+    }
+);
+
+// identify user
+$app->post(
+    '/login',
+    function(\Slim\Http\Request $request, \Slim\Http\Response $response, array $args) {
+        $nick = $request->getParam('nick');
+        if (empty($nick)) {
+            return $response->withRedirect('/login');
+        }
+
+        $_SESSION['nick'] = $nick;
+        return $response->withRedirect('/chat');
+    }
+);
+
+// show chat window
+$app->get(
+    '/chat',
+    function(\Slim\Http\Request $request, \Slim\Http\Response $response, array $args) {
+        if(empty($_SESSION['nick'])) {
+            return $response->withRedirect('/login');
+        }
+
+        return $this->view->render($response, 'chat.html.twig');
+    }
+);
 
 // send message
-$app->post('/send', function() use($app)
-{
-    $message = array(
-        'text'  => $app->request()->post('message'),
-        'nick'  => $_SESSION['nick'],
-        'time'  => date('d.m.Y H:i'),
-    );
-    
-    $c = curl_init('http://' . $_SERVER['HTTP_HOST'] . '/publish?id=1');
-    curl_setopt_array($c, array(
-        CURLOPT_POST            => 1,
-        CURLOPT_POSTFIELDS      => json_encode($message),
-        CURLOPT_RETURNTRANSFER  => 1,
-    ));
-    
-    $response = curl_exec($c);
-    echo $response;
-});
+$app->post(
+    '/send',
+    function(\Slim\Http\Request $request, \Slim\Http\Response $response) {
+        $channel = $request->getParam('channel');
 
-$app->get('/logout', function() use($app) {
-    $_SESSION['nick'] = null;
+        $message = array(
+            'text'  => $request->getParam('message'),
+            'nick'  => $_SESSION['nick'],
+            'time'  => date('d.m.Y H:i'),
+        );
+
+        $publishUrl = sprintf(
+            'http://%s/publish?id=%s',
+            $_SERVER['HTTP_HOST'],
+            $channel
+        );
+
+        $curl = \curl_init($publishUrl);
+
+        \curl_setopt_array(
+            $curl,
+            [
+                CURLOPT_POST            => 1,
+                CURLOPT_POSTFIELDS      => \json_encode($message),
+                CURLOPT_RETURNTRANSFER  => 1,
+            ]
+        );
+
+        $curlResult = \curl_exec($curl);
+
+        return $response->withJson([
+            'status' => $curlResult !== false,
+        ]);
+    }
+);
+
+$app->get(
+    '/logout',
+    function(\Slim\Http\Request $request, \Slim\Http\Response $response) {
+        $_SESSION['nick'] = null;
     
-    $app->redirect('/');
+        return $response->withRedirect('/login');
 });
 
 // start app
