@@ -90,7 +90,7 @@ $app->post(
         );
 
         $publishUrl = sprintf(
-            'http://%s/publish?id=%s',
+            'http://%s/publish?channel=%s',
             $_SERVER['HTTP_HOST'],
             $channel
         );
@@ -110,6 +110,10 @@ $app->post(
 
         return $response->withJson([
             'status' => $curlResult !== false,
+            'curl' => [
+                'errors' => curl_error($curl),
+                'info' => curl_getinfo($curl),
+            ],
         ]);
     }
 );

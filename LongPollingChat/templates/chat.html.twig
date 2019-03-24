@@ -32,6 +32,40 @@
         const $messageList = $('#messages');
         const $channels = $('#channels');
 
+        // get messages from queue
+        let ETag = null;
+        let time = null;
+        let pollConnection = null;
+
+        const startPoll = function(channel) {
+            if (pollConnection) {
+                // stop previous subscription if it was established
+                pollConnection.abort();
+            }
+
+            pollConnection = $.ajax({
+                method: 'GET',
+                data: {channel},
+                url: '/subscribe',
+                success: function(response, textStatus, xhr) {
+                    ETag = xhr.getResponseHeader('Etag');
+                    time = xhr.getResponseHeader('Last-Modified');
+
+                    if (response) {
+                        let message = '[' + response.time + '] ' + '<b>' + response.nick + '</b> ' + response.text;
+                        $messageList.prepend($('<div/>').html(message));
+                    }
+
+                    startPoll(channel);
+                },
+                dataType: 'json',
+                headers: {
+                    'If-None-Match': ETag,
+                    'If-Modified-Since': time
+                }
+            });
+        };
+
         // channel name to interact
         let channel = 'general';
 
@@ -41,6 +75,8 @@
             $li.find('a.nav-link').addClass('active');
 
             channel = $li.data('channel');
+
+            startPoll(channel);
 
             console.log('Selected channel: ' + channel);
         });
@@ -55,40 +91,14 @@
                     message: $message.val()
                 },
                 function(response) {
-                    $message.val('');
+                    if (response && response.status === true) {
+                        $message.val('');
+                    }
                 },
                 'json'
             );
         });
 
-        // get messages from queue
-        let ETag = null;
-        let time = null;
-
-        const startPoll = function() {
-            $.ajax({
-                method: 'GET',
-                data: {channel},
-                url: '/subscribe',
-                success: function(response, textStatus, xhr) {
-                    ETag = xhr.getResponseHeader('Etag');
-                    time = xhr.getResponseHeader('Last-Modified');
-
-                    if (response) {
-                        let message = '<b>' + response.nick + ' [' + response.time + ']</b> ' + response.text;
-                        $messageList.prepend($('<div/>').html(message));
-                    }
-
-                    startPoll();
-                },
-                dataType: 'json',
-                headers: {
-                    'If-None-Match': ETag,
-                    'If-Modified-Since': time
-                }
-            });
-        };
-
-        startPoll();
+        startPoll(channel);
     </script>
 {% endblock %}

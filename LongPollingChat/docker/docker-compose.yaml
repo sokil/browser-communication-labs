@@ -1,11 +1,16 @@
 version : '3'
 
+networks:
+  longpolling:
+
 services:
   php:
     container_name: "longpoll_chat_php"
     image: "php:7.2-fpm"
     volumes:
       - "..:/var/www/longpolling"
+    networks:
+      - longpolling
 
   nginx:
     container_name: "longpoll_chat_nginx"
@@ -16,4 +21,8 @@ services:
     links:
       - "php"
     volumes:
-    - "..:/var/www/longpolling"
+      - "..:/var/www/longpolling"
+    networks:
+      longpolling:
+        aliases:
+          - longpolling # same as nginx host for accessing from php service
