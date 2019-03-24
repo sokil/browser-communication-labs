@@ -45,7 +45,11 @@
 
             pollConnection = $.ajax({
                 method: 'GET',
-                data: {channel},
+                data: {
+                    // channel may be separated by "/" to fetch from few channels
+                    // backtrack may be specified to fetch old messages as channel + '.b10'
+                    channel: channel
+                },
                 url: '/subscribe',
                 success: function(response, textStatus, xhr) {
                     ETag = xhr.getResponseHeader('Etag');

@@ -113,6 +113,7 @@ $app->post(
             'curl' => [
                 'errors' => curl_error($curl),
                 'info' => curl_getinfo($curl),
+                'result' => \json_decode($curlResult),
             ],
         ]);
     }
