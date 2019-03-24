@@ -20,6 +20,13 @@
 
     <form id="frmSend">
         <div class="input-group">
+            <div class="input-group-prepend">
+                <button id="btnTransportToggler" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">long-polling</button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" href="#" data-transport="long-polling">long-polling</a>
+                    <a class="dropdown-item" href="#" data-transport="websocket">websocket</a>
+                </div>
+            </div>
             <input type="text" name="message" class="form-control">
             <div class="input-group-append">
                 <button type="submit" class="btn btn-primary">Send</button>
@@ -28,22 +35,23 @@
     </form>
 
     <script type="text/javascript">
+        // dom elements
         const $message = $('#frmSend input[name="message"]');
         const $messageList = $('#messages');
         const $channels = $('#channels');
 
-        // get messages from queue
-        let ETag = null;
-        let time = null;
-        let pollConnection = null;
+        // current channel
+        let channel = 'general';
 
-        const startPoll = function(channel) {
-            if (pollConnection) {
+        // get messages from long polling queue
+        let longPollingConnection = null;
+        const startLongPolling = function(channel) {
+            if (longPollingConnection) {
                 // stop previous subscription if it was established
-                pollConnection.abort();
+                longPollingConnection.abort();
             }
 
-            pollConnection = $.ajax({
+            longPollingConnection = $.ajax({
                 method: 'GET',
                 data: {
                     // channel may be separated by "/" to fetch from few channels
@@ -52,27 +60,25 @@
                 },
                 url: '/subscribe',
                 success: function(response, textStatus, xhr) {
-                    ETag = xhr.getResponseHeader('Etag');
-                    time = xhr.getResponseHeader('Last-Modified');
-
                     if (response) {
-                        let message = '[' + response.time + '] ' + '<b>' + response.nick + '</b> ' + response.text;
-                        $messageList.prepend($('<div/>').html(message));
+                        appendMessage(response);
                     }
 
-                    startPoll(channel);
+                    startLongPolling(channel);
                 },
-                dataType: 'json',
-                headers: {
-                    'If-None-Match': ETag,
-                    'If-Modified-Since': time
-                }
+                dataType: 'json'
             });
         };
 
-        // channel name to interact
-        let channel = 'general';
+        // get messages from websocket queue
+        const startWebSocket = function(channel) {
+            const w = new window.WebSocket('ws://longpolling/ws?channel=' + channel);
+            w.onmessage = function(e) {
+                appendMessage(JSON.parse(e.data));
+            };
+        };
 
+        // channel name to interact
         $channels.on('click', 'li', function(e) {
             $channels.find('a.nav-link').removeClass('active');
             const $li = $(this);
@@ -80,9 +86,28 @@
 
             channel = $li.data('channel');
 
-            startPoll(channel);
+            startLongPolling(channel);
 
             console.log('Selected channel: ' + channel);
+        });
+
+        // select transport
+        $('[data-transport]').click(function() {
+            const $btn = $(this);
+            let transport = $btn.data('transport'); // any value allowed at push_stream_subscriber
+
+            // stop prev transport
+            if (transport !== 'long-polling') {
+                if (longPollingConnection) {
+                    longPollingConnection.abort();
+                    longPollingConnection = null;
+                }
+            }
+
+            // set new transport
+            if (transport === 'websocket') {
+                startWebSocket(channel);
+            }
         });
 
         // send message
@@ -103,6 +128,14 @@
             );
         });
 
-        startPoll(channel);
+        // message append
+        let appendMessage = function(message) {
+            // message format defined in route "in POST /send"
+            let messageHTML = '[' + message.time + '] ' + '<b>' + message.nick + '</b> ' + message.text;
+            $messageList.prepend($('<div/>').html(messageHTML));
+        };
+
+        // start initial transport
+        startLongPolling(channel);
     </script>
 {% endblock %}
