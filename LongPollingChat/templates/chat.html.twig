@@ -25,6 +25,7 @@
                 <div class="dropdown-menu">
                     <a class="dropdown-item" href="#" data-transport="long-polling">long-polling</a>
                     <a class="dropdown-item" href="#" data-transport="websocket">websocket</a>
+                    <a class="dropdown-item" href="#" data-transport="eventsource">eventsource</a>
                 </div>
             </div>
             <input type="text" name="message" class="form-control">
@@ -72,8 +73,16 @@
 
         // get messages from websocket queue
         const startWebSocket = function(channel) {
-            const w = new window.WebSocket('ws://longpolling/ws?channel=' + channel);
-            w.onmessage = function(e) {
+            const ws = new window.WebSocket('ws://longpolling/ws?channel=' + channel);
+            ws.onmessage = function(e) {
+                appendMessage(JSON.parse(e.data));
+            };
+        };
+
+        // get messages from websocket queue
+        const startEventSource = function(channel) {
+            const es = new window.EventSource('http://longpolling/es?channel=' + channel);
+            es.onmessage = function(e) {
                 appendMessage(JSON.parse(e.data));
             };
         };
@@ -107,6 +116,10 @@
             // set new transport
             if (transport === 'websocket') {
                 startWebSocket(channel);
+            } else if (transport === 'eventsource') {
+                startEventSource(channel);
+            } else if (transport === 'long-polling') {
+                startLongPolling(channel);
             }
         });
 
