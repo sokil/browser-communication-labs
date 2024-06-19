@@ -4,6 +4,6 @@
         "url": "https://github.com/sokil/WebsocketChat"
     },
     "dependencies": {
-        "socket.io": "1.2.0"
+        "socket.io": "2.5.0"
     }
 }
